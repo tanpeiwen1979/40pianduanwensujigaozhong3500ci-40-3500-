@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短文10 · 单词表（音标 + 发音）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb;
+    color: #1f2937;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  header { margin-bottom: 18px; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .sub { margin-top: 6px; font-size: 13px; color: #6b7280; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin: 18px 0 14px;
+  }
+  .toolbar input[type="search"] {
+    flex: 1 1 220px; min-width: 160px;
+    padding: 10px 14px; border: 1px solid #d7dce6; border-radius: 10px;
+    font-size: 14px; outline: none; background: #fff;
+  }
+  .toolbar input[type="search"]:focus { border-color: #4f7cff; box-shadow: 0 0 0 3px rgba(79,124,255,.15); }
+  .toolbar select {
+    padding: 10px 12px; border: 1px solid #d7dce6; border-radius: 10px;
+    font-size: 14px; background: #fff; outline: none;
+  }
+  .btn {
+    padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer;
+    font-size: 14px; background: #4f7cff; color: #fff; transition: .2s;
+  }
+  .btn:hover { background: #3b66e8; }
+  .btn.ghost { background: #fff; color: #374151; border: 1px solid #d7dce6; }
+  .btn.ghost:hover { background: #eef2ff; }
+  .count { font-size: 13px; color: #6b7280; margin-left: auto; }
+
+  ul.list { list-style: none; display: grid; gap: 8px; }
+  li.row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto 44px;
+    align-items: center; gap: 10px;
+    background: #fff; border: 1px solid #e6eaf2; border-radius: 12px;
+    padding: 10px 14px; transition: .2s;
+  }
+  li.row:hover { border-color: #b9c8ff; box-shadow: 0 3px 10px rgba(79,124,255,.10); }
+  li.row.playing { border-color: #4f7cff; background: #eef3ff; }
+  .num { font-size: 13px; color: #9aa3b2; text-align: right; font-variant-numeric: tabular-nums; }
+  .main { min-width: 0; }
+  .word { font-size: 17px; font-weight: 600; color: #111827; }
+  .ipa { font-size: 13px; color: #6b7280; margin-left: 8px; font-family: "Segoe UI", "Lucida Sans Unicode", sans-serif; }
+  .cn { font-size: 14px; color: #374151; }
+  .speak {
+    width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+    background: #eef3ff; color: #4f7cff; font-size: 18px; line-height: 1;
+    display: grid; place-items: center; transition: .2s;
+  }
+  .speak:hover { background: #4f7cff; color: #fff; }
+  .speak.on { background: #4f7cff; color: #fff; }
+  .empty { text-align: center; color: #9aa3b2; padding: 40px 0; }
+  footer { margin-top: 22px; text-align: center; font-size: 12px; color: #9aa3b2; }
+
+  @media (max-width: 520px) {
+    li.row { grid-template-columns: 34px 1fr 40px; }
+    .speak { grid-column: 3; grid-row: 1; }
+    .cn { display: block; margin-top: 2px; }
+    .ipa { display: block; margin: 2px 0 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>短文 10 · 单词表</h1>
+    <div class="sub">共 73 词 · 英式音标 · 点击喇叭播放真人发音（需联网，失败时自动改用浏览器语音）</div>
+  </header>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜索英文或中文…">
+    <select id="voice">
+      <option value="en-GB">英音</option>
+      <option value="en-US">美音</option>
+    </select>
+    <button class="btn" id="playAll">连续播放（间隔5秒）</button>
+    <button class="btn ghost" id="stop">停止</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="empty" style="display:none">没有匹配的单词</div>
+  <footer>音标为英式（BrE）。发音优先使用在线词典音频，断网时回退到浏览器语音合成。</footer>
+</div>
+
+<script>
+const WORDS = [
+  [1,  "debate",        "/dɪˈbeɪt/",         "辩论"],
+  [2,  "contest",       "/ˈkɒntest/",        "比赛"],
+  [3,  "classroom",     "/ˈklɑːsruːm/",      "教室"],
+  [4,  "blackboard",    "/ˈblækbɔːd/",       "黑板"],
+  [5,  "tone",          "/təʊn/",            "语气"],
+  [6,  "ambulance",     "/ˈæmbjələns/",      "救护车"],
+  [7,  "chalk",         "/tʃɔːk/",           "粉笔"],
+  [8,  "still",         "/stɪl/",            "仍然"],
+  [9,  "data",          "/ˈdeɪtə/",          "数据"],
+  [10, "those",         "/ðəʊz/",            "那些"],
+  [11, "vocabulary",    "/vəˈkæbjələri/",    "词汇"],
+  [12, "spell",         "/spel/",            "拼写"],
+  [13, "grammar",       "/ˈɡræmə(r)/",       "语法"],
+  [14, "pronunciation", "/prəˌnʌnsiˈeɪʃn/",  "发音"],
+  [15, "ability",       "/əˈbɪləti/",        "能力"],
+  [16, "opportunity",   "/ˌɒpəˈtjuːnəti/",   "机会"],
+  [17, "wear",          "/weə(r)/",          "穿"],
+  [18, "clear",         "/klɪə(r)/",         "干净的"],
+  [19, "gate",          "/ɡeɪt/",            "大门"],
+  [20, "all",           "/ɔːl/",             "所有"],
+  [21, "everybody",     "/ˈevribɒdi/",       "每个人"],
+  [22, "heart",         "/hɑːt/",            "心"],
+  [23, "ward",          "/wɔːd/",            "病房"],
+  [24, "smell",         "/smel/",            "气味"],
+  [25, "nose",          "/nəʊz/",            "鼻"],
+  [26, "she",           "/ʃiː/",             "她"],
+  [27, "fever",         "/ˈfiːvə(r)/",       "发烧"],
+  [28, "pale",          "/peɪl/",            "苍白的"],
+  [29, "needle",        "/ˈniːdl/",          "针"],
+  [30, "paper",         "/ˈpeɪpə(r)/",       "纸"],
+  [31, "pen",           "/pen/",             "笔"],
+  [32, "until",         "/ənˈtɪl/",          "直到"],
+  [33, "nurse",         "/nɜːs/",            "护士"],
+  [34, "pill",          "/pɪl/",             "药片"],
+  [35, "lie",           "/laɪ/",             "平躺"],
+  [36, "healthy",       "/ˈhelθi/",          "健康的"],
+  [37, "begin",         "/bɪˈɡɪn/",          "开始"],
+  [38, "fist",          "/fɪst/",            "拳头"],
+  [39, "confident",     "/ˈkɒnfɪdənt/",      "自信的"],
+  [40, "my",            "/maɪ/",             "我的"],
+  [41, "same",          "/seɪm/",            "相同的"],
+  [42, "emphasize",     "/ˈemfəsaɪz/",       "强调"],
+  [43, "point",         "/pɔɪnt/",           "论点"],
+  [44, "key",           "/kiː/",             "关键"],
+  [45, "sweep",         "/swiːp/",           "扫"],
+  [46, "brain",         "/breɪn/",           "大脑"],
+  [47, "twenty",        "/ˈtwenti/",         "二十"],
+  [48, "reply",         "/rɪˈplaɪ/",         "回应"],
+  [49, "argue",         "/ˈɑːɡjuː/",         "争辩"],
+  [50, "seek",          "/siːk/",            "寻找"],
+  [51, "attempt",       "/əˈtempt/",         "试图"],
+  [52, "defend",        "/dɪˈfend/",         "保护"],
+  [53, "deep",          "/diːp/",            "深奥的"],
+  [54, "sand",          "/sænd/",            "沙"],
+  [55, "contradictory", "/ˌkɒntrəˈdɪktəri/", "相互矛盾的"],
+  [56, "expose",        "/ɪkˈspəʊz/",        "暴露"],
+  [57, "last",          "/lɑːst/",           "最后"],
+  [58, "insight",       "/ˈɪnsaɪt/",         "洞察力"],
+  [59, "logical",       "/ˈlɒdʒɪkl/",        "富有逻辑的"],
+  [60, "ring",          "/rɪŋ/",             "铃声"],
+  [61, "audience",      "/ˈɔːdiəns/",        "观众"],
+  [62, "wave",          "/weɪv/",            "挥手"],
+  [63, "laugh",         "/lɑːf/",            "笑"],
+  [64, "symbol",        "/ˈsɪmbl/",          "象征"],
+  [65, "first",         "/fɜːst/",           "第一"],
+  [66, "return",        "/rɪˈtɜːn/",         "返回"],
+  [67, "familiar",      "/fəˈmɪliə(r)/",     "熟悉的"],
+  [68, "friend",        "/frend/",           "朋友"],
+  [69, "warm",          "/wɔːm/",            "温暖的"],
+  [70, "sunshine",      "/ˈsʌnʃaɪn/",        "阳光"],
+  [71, "talent",        "/ˈtælənt/",         "天才"],
+  [72, "belief",        "/bɪˈliːf/",         "信念"],
+  [73, "achieve",       "/əˈtʃiːv/",         "实现"]
+];
+
+const listEl  = document.getElementById('list');
+const emptyEl = document.getElementById('empty');
+const countEl = document.getElementById('count');
+const searchEl = document.getElementById('search');
+const voiceEl = document.getElementById('voice');
+const playAllBtn = document.getElementById('playAll');
+const stopBtn = document.getElementById('stop');
+
+const AUDIO_BASE = 'https://dict.youdao.com/dictvoice?type=';  // 1=英音 2=美音
+const PLAY_GAP = 5000;   // 连续播放时单词之间的间隔（毫秒）
+
+let current = null;      // 当前高亮的 li
+let queue = [];          // 连续播放队列
+let queueTimer = null;
+let pendingWord = '';
+let pendingLi = null;
+let ttsWarned = false;
+
+const audioEl = new Audio();
+audioEl.preload = 'auto';
+
+audioEl.addEventListener('ended', () => {
+  markPlaying(null);
+  if (queue.length) queueTimer = setTimeout(nextInQueue, PLAY_GAP);
+});
+
+audioEl.addEventListener('error', () => {
+  if (pendingWord) fallbackTTS(pendingWord, pendingLi);
+});
+
+function render(filter = '') {
+  const key = filter.trim().toLowerCase();
+  listEl.innerHTML = '';
+  const shown = WORDS.filter(w =>
+    !key || w[1].toLowerCase().includes(key) || w[3].includes(key)
+  );
+  shown.forEach(([n, word, ipa, cn]) => {
+    const li = document.createElement('li');
+    li.className = 'row';
+    li.dataset.word = word;
+    li.innerHTML =
+      '<span class="num">' + n + '</span>' +
+      '<div class="main">' +
+        '<span class="word">' + word + '</span>' +
+        '<span class="ipa">' + ipa + '</span>' +
+        '<div class="cn">' + cn + '</div>' +
+      '</div>' +
+      '<span></span>' +
+      '<button class="speak" title="朗读 ' + word + '" aria-label="朗读 ' + word + '">🔊</button>';
+    li.querySelector('.speak').addEventListener('click', e => {
+      e.stopPropagation();
+      stopAll();
+      speak(word, li);
+    });
+    listEl.appendChild(li);
+  });
+  countEl.textContent = '显示 ' + shown.length + ' / ' + WORDS.length + ' 词';
+  emptyEl.style.display = shown.length ? 'none' : 'block';
+}
+
+function pickVoice(lang) {
+  const voices = speechSynthesis.getVoices();
+  return voices.find(v => v.lang === lang) ||
+         voices.find(v => v.lang.startsWith(lang.slice(0, 2))) ||
+         voices.find(v => /^en/i.test(v.lang)) || null;
+}
+
+function speak(word, li) {
+  stopAudio();
+  markPlaying(li);
+  pendingWord = word;
+  pendingLi = li;
+
+  // 首选：在线词典真人发音
+  const type = voiceEl.value === 'en-US' ? 2 : 1;
+  audioEl.src = AUDIO_BASE + type + '&audio=' + encodeURIComponent(word);
+  const p = audioEl.play();
+  if (p && p.catch) p.catch(() => fallbackTTS(word, li));
+}
+
+// 备用：浏览器语音合成
+function fallbackTTS(word, li) {
+  if (!('speechSynthesis' in window)) {
+    if (!ttsWarned) {
+      ttsWarned = true;
+      alert('在线发音加载失败，且当前浏览器不支持语音合成，请检查网络连接。');
+    }
+    markPlaying(null);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  const v = pickVoice(voiceEl.value);
+  if (v) u.voice = v;
+  u.lang = voiceEl.value;
+  u.rate = 0.9;
+  u.onstart = () => markPlaying(li);
+  u.onend = () => {
+    markPlaying(null);
+    if (queue.length) queueTimer = setTimeout(nextInQueue, PLAY_GAP);
+  };
+  u.onerror = () => markPlaying(null);
+  speechSynthesis.speak(u);
+
+  // 系统没有任何可用语音时给出提示
+  setTimeout(() => {
+    if (!speechSynthesis.speaking && !ttsWarned) {
+      ttsWarned = true;
+      alert('在线发音加载失败，系统也未安装英语语音包。请联网后重试。');
+      markPlaying(null);
+    }
+  }, 900);
+}
+
+function markPlaying(li) {
+  if (current) current.classList.remove('playing');
+  current = li;
+  if (li) {
+    li.classList.add('playing');
+    li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function nextInQueue() {
+  if (!queue.length) return;
+  const li = queue.shift();
+  speak(li.dataset.word, li);
+}
+
+function stopAudio() {
+  pendingWord = '';
+  audioEl.pause();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+function stopAll() {
+  queue = [];
+  clearTimeout(queueTimer);
+  stopAudio();
+  audioEl.removeAttribute('src');
+  audioEl.load();
+  markPlaying(null);
+}
+
+playAllBtn.addEventListener('click', () => {
+  stopAll();
+  queue = Array.from(listEl.querySelectorAll('li.row'));
+  nextInQueue();
+});
+
+stopBtn.addEventListener('click', stopAll);
+searchEl.addEventListener('input', e => { stopAll(); render(e.target.value); });
+
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => {};  // 触发语音列表加载
+}
+
+render();
+</script>
+</body>
+</html>
